@@ -81,6 +81,7 @@
         }
     },
     "require-dev": {
-        "symfony/maker-bundle": "^1.61"
+        "symfony/maker-bundle": "^1.61",
+        "symplify/easy-coding-standard": "11.3.4"
     }
 }
