@@ -2,19 +2,18 @@
 
 namespace App\Entity;
 
-use App\Repository\OrganizationRepository;
-use Doctrine\Common\Collections\ArrayCollection;
-use Doctrine\Common\Collections\Collection;
+use App\Repository\AssociateRepository;
 use Doctrine\ORM\Mapping as ORM;
 use geekcom\ValidatorDocs\Rules\Cnpj;
+use geekcom\ValidatorDocs\Rules\Cpf;
 use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity;
 use Symfony\Component\Serializer\Attribute\Ignore;
 use Symfony\Component\Validator\Constraints as Assert;
 use Symfony\Component\Validator\Context\ExecutionContextInterface;
 
-#[ORM\Entity(repositoryClass: OrganizationRepository::class)]
+#[ORM\Entity(repositoryClass: AssociateRepository::class)]
 #[UniqueEntity('document', message: 'The provided document is already registered.')]
-class Organization
+class Associate
 {
     #[ORM\Id]
     #[ORM\GeneratedValue]
@@ -28,17 +27,13 @@ class Organization
 
     #[ORM\Column(length: 255, unique: true)]
     #[Assert\NotBlank]
-    #[Assert\Length(exactly: 14)]
+    #[Assert\Length(min: 11, max: 14)]
     #[Assert\Type('digit')]
     private ?string $document = null;
 
-    #[ORM\OneToMany(targetEntity: Associate::class, mappedBy: 'organization', orphanRemoval: true)]
-    private Collection $associates;
-
-    public function __construct()
-    {
-        $this->associates = new ArrayCollection();
-    }
+    #[ORM\ManyToOne(inversedBy: 'associates')]
+    #[ORM\JoinColumn(nullable: false)]
+    private ?Organization $organization = null;
 
     public function getId(): ?int
     {
@@ -50,7 +45,7 @@ class Organization
         return $this->name;
     }
 
-    public function setName(?string $name): static
+    public function setName(string $name): static
     {
         $this->name = $name;
 
@@ -62,7 +57,7 @@ class Organization
         return $this->document;
     }
 
-    public function setDocument(?string $document): static
+    public function setDocument(string $document): static
     {
         $this->document = $document;
 
@@ -70,15 +65,26 @@ class Organization
     }
 
     #[Ignore]
-    public function getAssociates(): Collection
+    public function getOrganization(): ?Organization
     {
-        return $this->associates;
+        return $this->organization;
+    }
+
+    public function setOrganization(?Organization $organization): static
+    {
+        $this->organization = $organization;
+
+        return $this;
     }
 
     #[Assert\Callback]
     public function validate(ExecutionContextInterface $context, mixed $payload): void
     {
         if ((new Cnpj())->validateCnpj('', $this->getDocument())) {
+            return;
+        }
+
+        if ((new Cpf())->validateCpf('', $this->getDocument())) {
             return;
         }
 
